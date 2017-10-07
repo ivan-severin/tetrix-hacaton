@@ -36,20 +36,25 @@ class FaceClassifier {
     this->face_base[name] = face_model;
   }
 
-  public: std::vector<float> getScores(OneFaceModel &face_model) {
-    std::vector<float> scores;
+  public: std::map<std::string, float> getScores(OneFaceModel &face_model) {
+    std::map<std::string, float> scores;
 
     for (auto &[k, v] : this->face_base) {
       auto score = this->getSingleScore(face_model, v);
       std::cout << k << ": " << score << std::endl;
-      scores.push_back(score);
+      scores[k] = score;
     }
 
     return scores;
   }
 
   private: float getSingleScore(OneFaceModel &src, OneFaceModel &tmpl) {
-    return 10;
+    cv::Mat dist_tr, labels;
+    cv::distanceTransform(tmpl.edges_cann, dist_tr, labels, cv::DIST_L2, 3);
+
+    double score = cv::sum(cv::mean(dist_tr, src.edges_cann))[0];
+
+    return score;
   }
 };
 
@@ -227,8 +232,8 @@ int main(int argc, char **argv) {
         std::cout << "Added face: " << names[counter-1] << std::endl;
       } else if (key == ' ') {
         std::cout << "Item scores: ";
-        for (auto &score : scores)
-          std::cout << score << " ";
+        for (auto &[name, score] : scores)
+          std::cout << name << ": " << score << "; ";
         std::cout << std::endl;
       } else if (key == 27)
         break;

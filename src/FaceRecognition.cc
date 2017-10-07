@@ -28,6 +28,31 @@ struct OneFaceModel {
   cv::Point mouth_center;
 };
 
+class FaceClassifier {
+  private: std::map<std::string, OneFaceModel> face_base;
+  private: float threshold = 0;
+
+  public: void addPerson(OneFaceModel &face_model, std::string name) {
+    this->face_base[name] = face_model;
+  }
+
+  public: std::vector<float> getScores(OneFaceModel &face_model) {
+    std::vector<float> scores;
+
+    for (auto &[k, v] : this->face_base) {
+      auto score = this->getSingleScore(face_model, v);
+      std::cout << k << ": " << score << std::endl;
+      scores.push_back(score);
+    }
+
+    return scores;
+  }
+
+  private: float getSingleScore(OneFaceModel &src, OneFaceModel &tmpl) {
+    return 10;
+  }
+};
+
 class FaceModelGenerator {
   public: FaceModelGenerator() {
     if(!face_cascade.load(face_cascade_name))
@@ -140,6 +165,8 @@ class FaceModelGenerator {
             .mouth_center = m_c,
           };
 
+          std::cout << "Got face" << std::endl;
+
           cv::imshow("Face", face_roi);
           cv::imshow("FaceG", edges);
           cv::imshow("FaceCan", cannonical_face);
@@ -175,9 +202,15 @@ int main(int argc, char **argv) {
   if(!cap.isOpened())
     std::runtime_error("No camera");
 
+  ::FaceClassifier face_classifier;
+
   cv::namedWindow("Cam", 1);
   cv::namedWindow("Face", 1);
   cv::namedWindow("FaceG", 1);
+
+  int counter = 0;
+  std::string names[] = {"Nick", "John", "Yaroslav", "Alex"};
+
   while(true)
   {
     cv::Mat frame;
@@ -185,6 +218,20 @@ int main(int argc, char **argv) {
 
     try {
       auto face_model = face_detector.getFaceModel(frame);
+      auto scores = face_classifier.getScores(face_model);
+
+      cv::imshow("Cam", frame);
+      auto key = cv::waitKey(0);
+      if (key == 'a') {
+        face_classifier.addPerson(face_model, names[counter++]);
+        std::cout << "Added face: " << names[counter-1] << std::endl;
+      } else if (key == ' ') {
+        std::cout << "Item scores: ";
+        for (auto &score : scores)
+          std::cout << score << " ";
+        std::cout << std::endl;
+      } else if (key == 27)
+        break;
     }
     catch(...) {
       std::cout << "Face not detected" << std::endl;

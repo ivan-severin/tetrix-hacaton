@@ -4,6 +4,9 @@
 #include <vector>
 #include <cstdlib>
 #include <cassert>
+#include <chrono>
+#include <ctime>
+
 
 void deletespace(std::string& word)
 {
@@ -66,10 +69,10 @@ class drink{
 	public:
 	std::string country, description, designation, province, region_1, region_2, variety, winery;
 	int id, points, price;
-	void set_values(std::vector<std::string>);
+	void set_values_d(std::vector<std::string>);
 };
 
-void drink::set_values (std::vector<std::string> line)
+void drink::set_values_d(std::vector<std::string> line)
 {
 	id=std::atoi(line[0].c_str());
 	country=line[1];
@@ -83,22 +86,57 @@ void drink::set_values (std::vector<std::string> line)
 	variety=line[9];
 	winery=line[10];	
 }
+
+class client{
+	public:
+	int id, productid;
+	std::time_t date;
+	void set_values_c(std::vector<std::string>);
+};
+
+//tm date atot(std::string)
+//{
+	//std::tm a;
+	//get_time(&a, L"%Y-%b-%d %H:%M:%S");
+	//return a;
+//}
+//void client::set_values_c(std::vector<std::string> line)
+//{
+	//id=std::atoi(line[0].c_str());
+	//date=atot(line[1]);
+	//productid=atoi(line[2].c_str());
+//}
+
 int main()
 {
 	std::ifstream src("data/wine.csv");
 	std::string buffer;
 	std::vector<drink> bottles;
+	std::vector<client> people;
 	int i=0;
 	while(i<101)
 	{
 		drink bottle;
 		std::getline(src,buffer);
 		if (i++==0) continue;
-		bottle.set_values(separator(buffer));
+		bottle.set_values_d(separator(buffer));
 		bottles.push_back(bottle);
-		std::cout<<bottle.id<<"\n"<<bottle.designation<<"\n"<<bottle.country<<"\n"<<bottle.variety<<std::endl;
-		std::cout<<i<<std::endl;
+//		std::cout<<bottle.id<<"\n"<<bottle.designation<<"\n"<<bottle.country<<"\n"<<bottle.variety<<std::endl;
+//		std::cout<<i<<std::endl;
 	}
-	std::cout<<bottles.size()<<std::endl;
+//	std::cout<<bottles.size()<<std::endl;
+	i=0;
+	while(i<100)
+	{
+		client alcoholic;
+		std::getline(src,buffer);
+		alcoholic.id=(i*7)%10;
+		alcoholic.productid=(i*7)%100;
+		long long t=i;
+		alcoholic.date=40*365*24*3600+t*10000;
+		people.push_back(alcoholic);
+		i++;
+		std::cout<<alcoholic.id<<" "<<alcoholic.productid<<" "<<alcoholic.date<<std::endl;
+	}
 	return 0;
 }

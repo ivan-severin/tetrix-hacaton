@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <cassert>
 #include <chrono>
 #include <ctime>
+#include <map>
 
 
 void deletespace(std::string& word)
@@ -107,7 +109,7 @@ class client{
 	//productid=atoi(line[2].c_str());
 //}
 
-int main()
+int main(int argc, char **argv)
 {
 	std::ifstream src("data/wine.csv");
 	std::string buffer;
@@ -136,7 +138,31 @@ int main()
 		alcoholic.date=40*365*24*3600+t*10000;
 		people.push_back(alcoholic);
 		i++;
-		std::cout<<alcoholic.id<<" "<<alcoholic.productid<<" "<<alcoholic.date<<std::endl;
+//		std::cout<<alcoholic.id<<" "<<alcoholic.productid<<" "<<alcoholic.date<<std::endl;
+	}
+	std::map<std::string, int> mcountry;
+	for(i=0;i<100;i++)
+	{
+		int human_id = std::atoi(argv[0]);
+		if (people[i].id!=human_id) continue;
+		auto search = mcountry.find(bottles[people[i].productid].country);
+		if (search != mcountry.end()) search->second+=1;
+		else mcountry[bottles[people[i].productid].country]=1;
+	}
+	int g=0;
+	//std::map<std::string, int> m; 
+	//for (auto &el : mcountry)
+	//if (el.second>g)
+	//{g=el.second; m[0]=el;}
+	
+	std::vector<std::tuple<std::string, int>> m;
+	std::copy(mcountry.begin(), mcountry.end(),  std::back_inserter(m));
+	std::sort(m.begin(), m.end(), [](const std::tuple<std::string, int> &a, const std::tuple<std::string, int> &b){
+		return std::get<1>(a) > std::get<1>(b);});
+	
+	//std::cout<<m.find(g)->first<<" "<<g<<std::endl<<std::endl;
+	for (auto &el : m) {
+		std::cout << std::get<0>(el) << ": " << std::get<1>(el) << std::endl;
 	}
 	return 0;
 }

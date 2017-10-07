@@ -15,6 +15,12 @@ cv::Point2f model_left_eye_center(im_size*0.25, im_size*0.2);
 cv::Point2f model_right_eye_center(im_size*0.75, im_size*0.2);
 cv::Point2f model_mouth_center(im_size*0.5, im_size*0.7);
 
+void speek(std::string text) {
+  std::stringstream ss;
+  ss << "echo \"" << text << "\" | festival --tts";
+  system(ss.str().c_str());
+}
+
 struct OneFaceModel {
   cv::Mat img;
   cv::Mat edges_cann;
@@ -48,13 +54,108 @@ class FaceClassifier {
     return scores;
   }
 
+  public: std::tuple<std::string, float> getBestScore(OneFaceModel &face_model) {
+    auto scores_map = this->getScores(face_model);
+
+    auto it = std::min_element(scores_map.begin(), scores_map.end(), [](auto &a, auto &b) {
+      return std::get<1>(a) < std::get<1>(b);
+    });
+
+    if (it != scores_map.end())
+      return *it;
+  }
+
+  public: bool empty() {
+    return this->face_base.empty();
+  }
+
   private: float getSingleScore(OneFaceModel &src, OneFaceModel &tmpl) {
-    cv::Mat dist_tr, labels;
-    cv::distanceTransform(tmpl.edges_cann, dist_tr, labels, cv::DIST_L2, 3);
+    // cv::Mat dist_tr, labels;
+    // cv::distanceTransform(tmpl.edges_cann, dist_tr, labels, cv::DIST_L2, 3);
 
-    double score = cv::sum(cv::mean(dist_tr, src.edges_cann))[0];
+    // double score = cv::sum(cv::mean(dist_tr, src.edges_cann))[0];
+    cv::Mat diff, a, b;
+    src.img.convertTo(a, CV_32FC1, 1/255.);
+    tmpl.img.convertTo(b, CV_32FC1, 1/255.);
+    diff = a-b;
 
-    return score;
+    return cv::norm(diff);
+  }
+
+  public: void saveToFile(std::string filename) {
+    cv::FileStorage fs(filename, cv::FileStorage::WRITE);
+
+    fs << "size" << static_cast<int>(this->face_base.size());
+
+    fs << "elements" << "[";
+
+    for (auto &[key, value] : this->face_base) {
+      fs << "{:" << "key" << key
+                 << "edges_cann" << "[:";
+                 for (int i = 0; i < value.edges_cann.rows; ++i)
+                    for (int j = 0; j < value.edges_cann.cols; ++j)
+                      if (value.edges_cann.at<uint8_t>(i, j) != 0)
+                        fs << cv::Point(j, i);
+                 fs << "]"
+                 << "img" << "[:";
+                 for (int i = 0; i < value.img.rows; ++i)
+                    for (int j = 0; j < value.img.cols; ++j)
+                      fs << value.img.at<uint8_t>(i, j);
+                 fs << "]"
+                 << "left_eye_center" << value.left_eye_center
+                 << "right_eye_center" << value.right_eye_center
+                 << "mouth_center" << value.mouth_center
+      << "}";
+    }
+    fs << "]";
+
+    fs.release();
+  }
+
+  public: void loadFromFile(std::string filename) {
+    cv::FileStorage fs(filename, cv::FileStorage::READ);
+    if (!fs.isOpened()) {
+      std::cout << "File " << filename << " not found" << std::endl;
+      return;
+    }
+
+    int size;
+    fs["size"] >> size;
+
+    std::cout << "had " << size << " elements" << std::endl;
+
+    cv::FileNode elements_node = fs["elements"];
+
+    for (const auto &el : elements_node) {
+      std::string key;
+      OneFaceModel face_model;
+      el["key"] >> key;
+      // el["edges_cann"] >> face_model.edges_cann;
+      cv::FileNode cann_node = el["edges_cann"];
+      face_model.edges_cann = cv::Mat::zeros(im_size, im_size, CV_8UC1);
+      for (const auto &ptn : cann_node) {
+        cv::Point pt;
+        ptn >> pt;
+        face_model.edges_cann.at<uint8_t>(pt) = 255;
+      }
+      int i = 0;
+      face_model.img = cv::Mat::zeros(im_size, im_size, CV_8UC1);
+      cv::FileNode img_node = el["img"];
+      for (const auto &ptn : img_node) 
+      {
+        int px;
+        ptn >> px;
+        face_model.img.at<uint8_t>(i/im_size, i%im_size) = px;
+        i++;
+      }
+      el["left_eye_center"] >> face_model.left_eye_center; 
+      el["right_eye_center"] >> face_model.right_eye_center; 
+      el["mouth_center"] >> face_model.mouth_center; 
+      std::cout << key << std::endl;
+      this->face_base[key] = face_model;
+    }
+
+    fs.release();
   }
 };
 
@@ -113,7 +214,7 @@ class FaceModelGenerator {
           return (y1 < y2);
         });
 
-        if (it != smiles.end()) {
+        if (it != smiles.end() && (*it & eyes[0]).area()==0 && (*it & eyes[1]).area()==0) {
           // Successfully got face
           cv::rectangle(face_roi, *it, cv::Scalar(255, 255, 0), 2);
 
@@ -158,7 +259,7 @@ class FaceModelGenerator {
           // std::cout << affine_to_cann << std::endl;
 
           OneFaceModel face_model = {
-            .img = face_roi,
+            .img = cannonical_face,
             .edges_cann = edges,
 
             .left_eye = eyes[0],
@@ -208,6 +309,7 @@ int main(int argc, char **argv) {
     std::runtime_error("No camera");
 
   ::FaceClassifier face_classifier;
+  face_classifier.loadFromFile("data/faces.yaml");
 
   cv::namedWindow("Cam", 1);
   cv::namedWindow("Face", 1);
@@ -231,15 +333,22 @@ int main(int argc, char **argv) {
         face_classifier.addPerson(face_model, names[counter++]);
         std::cout << "Added face: " << names[counter-1] << std::endl;
       } else if (key == ' ') {
-        std::cout << "Item scores: ";
-        for (auto &[name, score] : scores)
-          std::cout << name << ": " << score << "; ";
-        std::cout << std::endl;
+        if (!face_classifier.empty()) {
+          auto [name, score] = face_classifier.getBestScore(face_model);
+
+          std::cout << "Name: " << name << "\nScore: " << score;
+
+          // speek("Welcome, fellow customer, " + name + "!");
+        }
+        // std::cout << "Item scores: ";
+        // for (auto &[name, score] : scores)
+        //   std::cout << name << ": " << score << "; ";
+        // std::cout << std::endl;
       } else if (key == 27)
         break;
     }
-    catch(...) {
-      std::cout << "Face not detected" << std::endl;
+    catch(std::runtime_error &ex) {
+      std::cout << "Face not detected: " << ex.what() << std::endl;
     }
 
     cv::imshow("Cam", frame);
@@ -247,6 +356,8 @@ int main(int argc, char **argv) {
       break;
     }
   }
+
+  face_classifier.saveToFile("data/faces.yaml");
 
   return 0;
 }

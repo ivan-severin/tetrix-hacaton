@@ -9,6 +9,11 @@ add_definitions(-g -pthread)
 find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 
-add_executable(start main.cc)
+include_directories(include)
+
+add_executable(start src/main.cc)
+add_executable(database src/database.cxx)
+
 target_link_libraries(start ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(database ${CMAKE_THREAD_LIBS_INIT})
 

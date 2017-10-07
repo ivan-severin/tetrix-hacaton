@@ -1,13 +1,13 @@
 # tetrix-hacaton
 Task 1. Smart-Wine shop network
 
-#Building
+## Building
 
-##Once:
+### Once:
 
 ```mkdir build && cd build && cmake ..```
 
-##Each build:
+### Each build:
 
 In project root:
 

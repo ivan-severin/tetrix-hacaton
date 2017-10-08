@@ -96,6 +96,33 @@ class client{
 	void set_values_c(std::vector<std::string>);
 };
 
+std::vector<std::tuple<std::string, int>> high1(std::map<std::string, int> mcountry)
+{
+	std::vector<std::tuple<std::string, int>> res;
+	std::copy(mcountry.begin(), mcountry.end(),  std::back_inserter(res));
+	std::sort(res.begin(), res.end(), [](const std::tuple<std::string, int> &a, const std::tuple<std::string, int> &b){
+		return std::get<1>(a) > std::get<1>(b);});
+	return res;
+}
+std::vector<std::tuple<std::string, int>> high2(std::map<std::string, int> mcountry)
+{
+	std::vector<std::tuple<std::string, int>> res;
+	std::copy(mcountry.begin(), mcountry.end(),  std::back_inserter(res));
+	std::sort(res.begin(), res.end(), [](const std::tuple<std::string, int> &a, const std::tuple<std::string, int> &b){
+		return std::get<1>(a) > std::get<1>(b);});
+	return res;
+}
+std::vector<int> recomm(std::vector<std::tuple<std::string, int>> high1, std::vector<std::tuple<std::string, int>> high2, std::vector<drink> bottles)
+{
+	std::vector<int> k;
+	for(int i=0;i<100;i++)
+	if ((std::get<0>(high1[0])==bottles[i].country) && (std::get<0>(high2[0])==bottles[i].variety)) k.push_back(i);	
+	if (k.size()==0)
+	for(int i=0;i<100;i++)
+	if (std::get<0>(high2[0])==bottles[i].variety) k.push_back(i); 
+	return k;
+}
+
 //tm date atot(std::string)
 //{
 	//std::tm a;
@@ -109,9 +136,21 @@ class client{
 	//productid=atoi(line[2].c_str());
 //}
 
+void addalco(int idnew, std::vector<int> products, std::vector<drink> people)
+{
+	for(int i=0; i<products.size();i++)
+	{
+		client buffer;
+		buffer.id=idnew;
+		buffer.productid=products[i];
+		buffer.date=time(nullptr);
+		people.push_back({});
+	}
+}
 int main(int argc, char **argv)
 {
 	std::ifstream src("data/wine.csv");
+	std::ofstream res("data/alcoholic.txt");
 	std::string buffer;
 	std::vector<drink> bottles;
 	std::vector<client> people;
@@ -149,20 +188,42 @@ int main(int argc, char **argv)
 		if (search != mcountry.end()) search->second+=1;
 		else mcountry[bottles[people[i].productid].country]=1;
 	}
+	std::map<std::string, int> mvariety;
+	for(i=0;i<100;i++)
+	{
+		int human_id = std::atoi(argv[0]);
+		if (people[i].id!=human_id) continue;
+		auto search = mvariety.find(bottles[people[i].productid].variety);
+		if (search != mvariety.end()) search->second+=1;
+		else mvariety[bottles[people[i].productid].variety]=1;
+	}
 	int g=0;
 	//std::map<std::string, int> m; 
 	//for (auto &el : mcountry)
 	//if (el.second>g)
 	//{g=el.second; m[0]=el;}
 	
-	std::vector<std::tuple<std::string, int>> m;
-	std::copy(mcountry.begin(), mcountry.end(),  std::back_inserter(m));
-	std::sort(m.begin(), m.end(), [](const std::tuple<std::string, int> &a, const std::tuple<std::string, int> &b){
-		return std::get<1>(a) > std::get<1>(b);});
+	std::vector<std::tuple<std::string, int>> m1;
+	std::vector<std::tuple<std::string, int>> m2;
+	m1=high1(mcountry);
+	m2=high2(mvariety);
+	//std::copy(mcountry.begin(), mcountry.end(),  std::back_inserter(m));
+	//std::sort(m.begin(), m.end(), [](const std::tuple<std::string, int> &a, const std::tuple<std::string, int> &b){
+		//return std::get<1>(a) > std::get<1>(b);});
+	
 	
 	//std::cout<<m.find(g)->first<<" "<<g<<std::endl<<std::endl;
-	for (auto &el : m) {
-		std::cout << std::get<0>(el) << ": " << std::get<1>(el) << std::endl;
-	}
+	//for (auto &el : m1) {
+		//std::cout << std::get<0>(el) << ": " << std::get<1>(el) << std::endl;
+	//}
+	//for (auto &el : m2) {
+		//std::cout << std::get<0>(el) << ": " << std::get<1>(el) << std::endl;
+	//}
+	//std::vector<int> k=recomm(m1,m2,bottles);
+	//for (auto &el : k) {
+		//std::cout <<std::endl<< el << ": " << bottles[el].country<<" "<<bottles[el].variety << std::endl;
+	//}
+	//res<<std::get<0>(m1[0])<<" "<<std::get<1>(m1[0])<<std::endl;
+	
 	return 0;
 }

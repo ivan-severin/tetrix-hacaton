@@ -2,7 +2,11 @@
 #include <string>
 #include <vector>
 
+#include <cstdio>
+
 #include <opencv2/opencv.hpp>
+
+#include "Network.hh"
 
 // class UserFaceModel {
 //   std 
@@ -19,6 +23,23 @@ void speek(std::string text) {
   std::stringstream ss;
   ss << "echo \"" << text << "\" | festival --tts";
   system(ss.str().c_str());
+}
+
+std::string ssystem(const char *command) {
+  char tmpname [] = "/tmp/embeds.txt";//L_tmpnam];
+  // std::tmpnam(tmpname);
+  std::string scommand = command;
+  std::string cmd = scommand + " | tee " + tmpname;
+  std::system(cmd.c_str());
+  std::ifstream file(tmpname, std::ios::in);
+  std::string result;
+  if (file) {
+    while (!file.eof()) result.push_back(file.get());
+        file.close();
+  }
+
+  // remove(tmpname);
+  return result;
 }
 
 struct OneFaceModel {
@@ -63,6 +84,20 @@ class FaceClassifier {
 
     if (it != scores_map.end())
       return *it;
+  }
+
+  public: std::vector<float> getEmbeddings(OneFaceModel &face_model) {
+    cv::imwrite("/tmp/face.jpg", face_model.img);
+    std::cout << "Firing up Facenet ... " << std::endl;
+    // auto output = ssystem("cd node-facenet && ./node_modules/.bin/ts-node bin/embedding.ts /tmp/face.jpg && cd ..");
+    auto output = ssystem("./get-embeddings.sh /tmp/face.jpg");
+    auto it = output.rfind('\n');
+    std::string embs = output.substr(it);
+    std::cout << "Embeddings: " << output << std::endl;
+
+    std::vector<float> embeddings;
+
+    return embeddings;
   }
 
   public: bool empty() {
@@ -292,6 +327,8 @@ class FaceModelGenerator {
     throw std::runtime_error("No face");
   }
 
+
+
   private: std::string face_cascade_name = "/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml";
   private: std::string eye_cascade_name = "/usr/share/opencv/haarcascades/haarcascade_eye_tree_eyeglasses.xml";
   private: std::string smile_cascade_name = "/usr/share/opencv/haarcascades/haarcascade_smile.xml";
@@ -302,6 +339,16 @@ class FaceModelGenerator {
 };
 
 int main(int argc, char **argv) {
+  ConnectionToWebServer conn("10.1.3.46", "31285");
+  // ConnectionToWebServer conn("127.0.0.1", "22");
+
+  conn.launch();
+
+  for (int i = 0; i < 10; ++i) {
+    sleep(1);
+    conn.sendMsg("lol\n");
+  }
+
   FaceModelGenerator face_detector;
 
   cv::VideoCapture cap(0);
@@ -328,24 +375,34 @@ int main(int argc, char **argv) {
       auto scores = face_classifier.getScores(face_model);
 
       cv::imshow("Cam", frame);
-      auto key = cv::waitKey(0);
+      auto key = cv::waitKey(30);
       if (key == 'a') {
         face_classifier.addPerson(face_model, names[counter++]);
         std::cout << "Added face: " << names[counter-1] << std::endl;
-      } else if (key == ' ') {
+      } else if (key == 27)
+        break;
+      else /*if (key == ' ')*/ {
+        // face_classifier.getEmbeddings(face_model);
         if (!face_classifier.empty()) {
           auto [name, score] = face_classifier.getBestScore(face_model);
 
           std::cout << "Name: " << name << "\nScore: " << score;
-
           // speek("Welcome, fellow customer, " + name + "!");
+
+          std::cout << "Informing UI ..." <<  std::endl;
+          std::stringstream sstr;
+          sstr << name;
+          std::vector<int> wines = {1, 2, 3}; // getBottleSuggestions(std::stoi(name));
+          for (auto i : wines)
+            sstr << " " << i;
+          sstr << "\n";
+          conn.sendMsg(sstr.str());
         }
         // std::cout << "Item scores: ";
         // for (auto &[name, score] : scores)
         //   std::cout << name << ": " << score << "; ";
         // std::cout << std::endl;
-      } else if (key == 27)
-        break;
+      }
     }
     catch(std::runtime_error &ex) {
       std::cout << "Face not detected: " << ex.what() << std::endl;

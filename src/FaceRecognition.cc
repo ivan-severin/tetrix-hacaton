@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -394,6 +395,9 @@ int main(int argc, char **argv) {
   name_ids[names[2]] = 3;
   name_ids[names[3]] = 4;
 
+  std::chrono::system_clock::time_point last_report = std::chrono::system_clock::now() -  std::chrono::hours(1);
+  std::string last_report_name = "";
+
   while(true)
   {
     cv::Mat frame;
@@ -421,16 +425,21 @@ int main(int argc, char **argv) {
           std::cout << "Name: " << name << "\nScore: " << score;
           // speek("Welcome, fellow customer, " + name + "!");
 
-          std::cout << "Informing UI ..." <<  std::endl;
-          std::stringstream sstr;
-          sstr << name;
-          std::vector<int> wines = db.getRecomendations(name_ids[name]);
-          for (auto i : wines)
-            sstr << " " << i;
-          sstr << "\n";
-#if Netw
-          conn.sendMsg(sstr.str());
-#endif
+          auto now = std::chrono::system_clock::now();
+          if (now - last_report > std::chrono::seconds(10) && last_report_name != name) {
+            last_report = now;
+
+            std::cout << "Informing UI ..." <<  std::endl;
+            std::stringstream sstr;
+            sstr << name;
+            std::vector<int> wines = db.getRecomendations(name_ids[name]);
+            for (auto i : wines)
+              sstr << " " << i;
+            sstr << "\n";
+  #if Netw
+            conn.sendMsg(sstr.str());
+  #endif
+          }
         }
         // std::cout << "Item scores: ";
         // for (auto &[name, score] : scores)

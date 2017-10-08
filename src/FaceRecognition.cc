@@ -46,6 +46,8 @@ struct OneFaceModel {
   cv::Mat img;
   cv::Mat edges_cann;
 
+  cv::Rect face;
+
   cv::Rect left_eye;
   cv::Rect right_eye;
   cv::Rect mouth;
@@ -194,6 +196,8 @@ class FaceClassifier {
   }
 };
 
+cv::Mat new_frame = cv::Mat::zeros(480 + im_size, std::max(640,im_size*2), CV_8UC3);
+
 class FaceModelGenerator {
   public: FaceModelGenerator() {
     if(!face_cascade.load(face_cascade_name))
@@ -297,6 +301,8 @@ class FaceModelGenerator {
             .img = cannonical_face,
             .edges_cann = edges,
 
+            .face = face_rect,
+
             .left_eye = eyes[0],
             .right_eye = eyes[1],
             .mouth = *it,
@@ -308,9 +314,19 @@ class FaceModelGenerator {
 
           std::cout << "Got face" << std::endl;
 
-          cv::imshow("Face", face_roi);
-          cv::imshow("FaceG", edges);
-          cv::imshow("FaceCan", cannonical_face);
+          cv::Mat new_edges, new_cann_face;
+          frame.copyTo(new_frame(cv::Rect(0,0,frame.cols,frame.rows)));
+          // face_roi.copyTo(new_frame(cv::Rect(0, frame.rows, im_size, im_size)));
+          cv::cvtColor(edges, new_edges, CV_GRAY2BGR);
+          cv::cvtColor(cannonical_face, new_cann_face, CV_GRAY2BGR);
+          new_edges.copyTo(new_frame(cv::Rect(im_size*0, frame.rows, im_size, im_size)));
+          new_cann_face.copyTo(new_frame(cv::Rect(im_size*1, frame.rows, im_size, im_size)));
+
+          frame = new_frame;
+
+          // cv::imshow("Face", face_roi);
+          // cv::imshow("FaceG", edges);
+          // cv::imshow("FaceCan", cannonical_face);
 
           return face_model;
         }
@@ -338,16 +354,21 @@ class FaceModelGenerator {
   private: cv::CascadeClassifier smile_cascade;
 };
 
+#define Netw 1
+
+
 int main(int argc, char **argv) {
+#if Netw
   ConnectionToWebServer conn("10.1.3.46", "31285");
   // ConnectionToWebServer conn("127.0.0.1", "22");
 
   conn.launch();
 
-  for (int i = 0; i < 10; ++i) {
-    sleep(1);
-    conn.sendMsg("lol\n");
-  }
+  // for (int i = 0; i < 10; ++i) {
+  //   sleep(1);
+  //   conn.sendMsg("lol\n");
+  // }
+#endif
 
   FaceModelGenerator face_detector;
 
@@ -359,8 +380,8 @@ int main(int argc, char **argv) {
   face_classifier.loadFromFile("data/faces.yaml");
 
   cv::namedWindow("Cam", 1);
-  cv::namedWindow("Face", 1);
-  cv::namedWindow("FaceG", 1);
+  // cv::namedWindow("Face", 1);
+  // cv::namedWindow("FaceG", 1);
 
   int counter = 0;
   std::string names[] = {"Nick", "John", "Yaroslav", "Alex"};
@@ -386,6 +407,9 @@ int main(int argc, char **argv) {
         if (!face_classifier.empty()) {
           auto [name, score] = face_classifier.getBestScore(face_model);
 
+          cv::putText(frame, name,
+              cv::Point(face_model.face.x+face_model.face.width/2, face_model.face.y+face_model.face.height + 20),
+              cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(0, 255, 0), 1);
           std::cout << "Name: " << name << "\nScore: " << score;
           // speek("Welcome, fellow customer, " + name + "!");
 
@@ -396,7 +420,9 @@ int main(int argc, char **argv) {
           for (auto i : wines)
             sstr << " " << i;
           sstr << "\n";
+#if Netw
           conn.sendMsg(sstr.str());
+#endif
         }
         // std::cout << "Item scores: ";
         // for (auto &[name, score] : scores)

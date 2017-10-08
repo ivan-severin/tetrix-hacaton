@@ -38,7 +38,7 @@ class ConnectionToWebServer {
 
     std::istream buff_stream(&buff);
     std::string data;
-    buff_stream >> data;
+    std::getline(buff_stream, data);
 
     std::cout << "Got reply: " << data << std::endl;
     return data;

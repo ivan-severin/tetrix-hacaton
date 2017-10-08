@@ -46,7 +46,7 @@
 </head>
 <body>
   <div class="container" style="padding: 10px; ">
-    <!-- <h1>{{title}}</h1> -->
+    <h3>{{title}}</h3>
     <br/>
     <div id="toolbar"></div>
     <table
@@ -73,7 +73,7 @@
         $button = $('#button');
     $(function () {
         $button.click(function () {
-            alert('getSelections: ' + JSON.stringify($table.bootstrapTable('getSelections')));
+            // alert('getSelections: ' + JSON.stringify($table.bootstrapTable('getSelections')));
                   $.ajax({
                       type: 'POST',
                       url: '/checked',
@@ -82,7 +82,7 @@
                       data:  JSON.stringify($table.bootstrapTable('getSelections')),
                       success: function(response) {
                             // console.log(response);
-                            alert(JSON.stringify(response));
+                            // alert(JSON.stringify(response));
                             $('#table').bootstrapTable('load', {
                                   data: response
                               });

@@ -7,6 +7,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "Network.hh"
+#include "database.hh"
 
 // class UserFaceModel {
 //   std 
@@ -372,6 +373,8 @@ int main(int argc, char **argv) {
 
   FaceModelGenerator face_detector;
 
+  DataBase db;
+
   cv::VideoCapture cap(0);
   if(!cap.isOpened())
     std::runtime_error("No camera");
@@ -385,6 +388,11 @@ int main(int argc, char **argv) {
 
   int counter = 0;
   std::string names[] = {"Nick", "John", "Yaroslav", "Alex"};
+  std::map<std::string, int> name_ids;
+  name_ids[names[0]] = 1;
+  name_ids[names[1]] = 2;
+  name_ids[names[2]] = 3;
+  name_ids[names[3]] = 4;
 
   while(true)
   {
@@ -416,7 +424,7 @@ int main(int argc, char **argv) {
           std::cout << "Informing UI ..." <<  std::endl;
           std::stringstream sstr;
           sstr << name;
-          std::vector<int> wines = {1, 2, 3}; // getBottleSuggestions(std::stoi(name));
+          std::vector<int> wines = db.getRecomendations(name_ids[name]);
           for (auto i : wines)
             sstr << " " << i;
           sstr << "\n";

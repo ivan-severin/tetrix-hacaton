@@ -150,13 +150,15 @@ void addalco(int idnew, std::vector<int> products, std::vector<drink> people)
 }
 
 class DataBase {
-	std::ifstream src("data/wine.csv");
-	std::ofstream res("data/alcoholic.txt");
+	std::ifstream src;
+	// std::ofstream res("data/alcoholic.txt");
 	std::string buffer;
 	std::vector<drink> bottles;
 	std::vector<client> people;
 
 	public: DataBase() {
+		src.open("data/wine.csv");
+
 		int i=0;
 		while(i<101)
 		{
@@ -227,9 +229,9 @@ class DataBase {
 			//std::cout << std::get<0>(el) << ": " << std::get<1>(el) << std::endl;
 		//}
 		std::vector<int> k=recomm(m1,m2,bottles);
-		for (auto &el : k) {
-			std::cout <<std::endl<< el << ": " << bottles[el].country<<" "<<bottles[el].variety << std::endl;
-		}
+		// for (auto &el : k) {
+		// 	std::cout <<std::endl<< el << ": " << bottles[el].country<<" "<<bottles[el].variety << std::endl;
+		// }
 		//res<<std::get<0>(m1[0])<<" "<<std::get<1>(m1[0])<<std::endl;
 
 		return k;

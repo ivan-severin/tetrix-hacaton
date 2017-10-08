@@ -72,7 +72,7 @@ class FaceClassifier {
 
     for (auto &[k, v] : this->face_base) {
       auto score = this->getSingleScore(face_model, v);
-      std::cout << k << ": " << score << std::endl;
+      // std::cout << k << ": " << score << std::endl;
       scores[k] = score;
     }
 
@@ -236,7 +236,7 @@ class FaceModelGenerator {
       cv::rectangle(frame, face_rect, cv::Scalar(0, 255, 0), 2);
 
       if (eyes.size() != 2) {
-        std::cout << "Are you even a human?!?! (eyes: " << eyes.size() << ")" << std::endl;
+        // std::cout << "Are you even a human?!?! (eyes: " << eyes.size() << ")" << std::endl;
         throw std::runtime_error("No eyes");
       } else {
         cv::Rect isect = (eyes[0] & eyes[1]);
@@ -314,7 +314,7 @@ class FaceModelGenerator {
             .mouth_center = m_c,
           };
 
-          std::cout << "Got face" << std::endl;
+          // std::cout << "Got face" << std::endl;
 
           cv::Mat new_edges, new_cann_face;
           frame.copyTo(new_frame(cv::Rect(0,0,frame.cols,frame.rows)));
@@ -422,16 +422,18 @@ int main(int argc, char **argv) {
           cv::putText(frame, name,
               cv::Point(face_model.face.x+face_model.face.width/2, face_model.face.y+face_model.face.height + 20),
               cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(0, 255, 0), 1);
-          std::cout << "Name: " << name << "\nScore: " << score;
+          // std::cout << "Name: " << name << "\nScore: " << score;
           // speek("Welcome, fellow customer, " + name + "!");
 
           auto now = std::chrono::system_clock::now();
           if (now - last_report > std::chrono::seconds(10) && last_report_name != name) {
             last_report = now;
+            last_report_name = name;
 
             std::cout << "Informing UI ..." <<  std::endl;
             std::stringstream sstr;
             sstr << name;
+            std::cout << "Suggestions for user: " << name <<  std::endl;
             std::vector<int> wines = db.getRecomendations(name_ids[name]);
             for (auto i : wines)
               sstr << " " << i;
@@ -448,7 +450,7 @@ int main(int argc, char **argv) {
       }
     }
     catch(std::runtime_error &ex) {
-      std::cout << "Face not detected: " << ex.what() << std::endl;
+      // std::cout << "Face not detected: " << ex.what() << std::endl;
     }
 
     cv::imshow("Cam", frame);

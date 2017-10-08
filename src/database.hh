@@ -229,9 +229,10 @@ class DataBase {
 			//std::cout << std::get<0>(el) << ": " << std::get<1>(el) << std::endl;
 		//}
 		std::vector<int> k=recomm(m1,m2,bottles);
-		// for (auto &el : k) {
-		// 	std::cout <<std::endl<< el << ": " << bottles[el].country<<" "<<bottles[el].variety << std::endl;
-		// }
+		for (auto &el : k) {
+			// std::cout <<std::endl<< el << ": " << bottles[el].country<<" "<<bottles[el].variety << std::endl;
+			std::cout << el << ": " << bottles[el].country << " " << bottles[el].variety << " " << bottles[el].winery << std::endl;
+		}
 		//res<<std::get<0>(m1[0])<<" "<<std::get<1>(m1[0])<<std::endl;
 
 		return k;
